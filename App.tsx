@@ -85,12 +85,6 @@ Tts.setDefaultLanguage(ttsLanguageMap['el']); // Default to Greek
 Tts.setDefaultRate(0.5); // Adjust speech rate (0.1 to 1.0)
 
 export default function App() {
-  // const initialRegion: Region = {
-  //   latitude: 38.0428,
-  //   longitude: 23.8644,
-  //   latitudeDelta: 0.05,
-  //   longitudeDelta: 0.05,
-  // };
 
   const [selectedStudyArea, setSelectedStudyArea] = useState<StudyArea | null>(null);
 
@@ -116,7 +110,6 @@ export default function App() {
   const [showAlternativePath, setShowAlternativePath] = useState<boolean>(false);
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [mode, setMode] = useState<string>('pedestrian');
-  // const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const { t, i18n } = useTranslation();
   const [language, setLanguage] = useState('en'); // Default language is English
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
@@ -202,7 +195,7 @@ export default function App() {
             setIsLocationLoading(false);
 
             // Provide feedback to user
-            if (mode === 'visuallyImpaired') {
+            if (mode !== 'pedestrian') {
               speakAccessibilityInfo(t('locationError'));
             }
           }
@@ -300,8 +293,8 @@ export default function App() {
           setRouteData(data);
           setShowAlternativePath(false); // Reset to default path when new route is calculated
 
-          // Announce the alternative route message only in visuallyImpaired mode
-          if (mode === 'visuallyImpaired') {
+          // Announce the alternative route message for accessibility modes
+          if (mode !== 'pedestrian') {
             setTimeout(() => {
               if (data.alternative_path.length > 0) {
                 speakAccessibilityInfo(t('alternativeRouteSpeech'));
@@ -697,7 +690,7 @@ export default function App() {
       // resetMapView(studyAreaToReset);
     });
 
-    if (mode === 'visuallyImpaired') {
+    if (mode !== 'pedestrian') {
       if (isNavigating) {
         speakAccessibilityInfo(t('navigationStopped'));
       } else {
@@ -774,6 +767,11 @@ export default function App() {
     if (!routeData) {
       setNavigationSteps([]);
       setCurrentInstruction(t('noRouteFound'));
+      
+      // Announce no route found for accessibility modes
+      if (mode !== 'pedestrian') {
+        speakAccessibilityInfo(t('noRouteFound'));
+      }
       return;
     }
 
@@ -792,9 +790,10 @@ export default function App() {
         const end = pathCoordinates[i + 1];
         const distance = calculateDistance(start, end);
         const bearing = calculateBearing(start, end);
+        const obstacles = getObstaclesForSegment(start, end);
 
         steps.push({
-          instruction: getDirectionInstruction(bearing, distance),
+          instruction: getDirectionInstruction(bearing, distance, obstacles),
           distance: distance
         });
       }
@@ -805,6 +804,11 @@ export default function App() {
     setCurrentStepIndex(0);
     setCurrentInstruction(steps[0]?.instruction || '');
     setNextInstruction(steps[1]?.instruction || null);
+    
+    // Announce the first instruction for accessibility modes
+    if (mode !== 'pedestrian' && steps[0]?.instruction) {
+      speakAccessibilityInfo(steps[0].instruction);
+    }
   };
 
   const generateAllNavigationSteps = (data: RouteResponse, showAlt: boolean): Array<{ instruction: string; distance: number }> => {
@@ -820,11 +824,14 @@ export default function App() {
     let lastBearing: number | null = null;
 
     // Generate instruction for each segment
+    let combinedObstacles: string[] = [];
+    
     for (let i = 0; i < pathCoordinates.length - 1; i++) {
       const start = pathCoordinates[i];
       const end = pathCoordinates[i + 1];
       const distance = calculateDistance(start, end);
       const bearing = calculateBearing(start, end);
+      const obstacles = getObstaclesForSegment(start, end);
 
       // Determine if this is a straight segment
       const isStraight = (bearing >= 225 || bearing < 135); // Same bearing check as getDirectionInstruction
@@ -832,16 +839,18 @@ export default function App() {
       if (isStraight && lastInstructionType === 'straight') {
         // Combine with previous straight instruction
         combinedDistance += distance;
-        // Update the last step with combined distance
+        combinedObstacles = [...new Set([...combinedObstacles, ...obstacles])]; // Merge unique obstacles
+        // Update the last step with combined distance and obstacles
         steps[steps.length - 1] = {
-          instruction: getDirectionInstruction(lastBearing!, combinedDistance),
+          instruction: getDirectionInstruction(lastBearing!, combinedDistance, combinedObstacles),
           distance: combinedDistance
         };
       } else {
         // Add as new step
         combinedDistance = distance;
+        combinedObstacles = obstacles;
         steps.push({
-          instruction: getDirectionInstruction(bearing, distance),
+          instruction: getDirectionInstruction(bearing, distance, obstacles),
           distance: distance
         });
         lastInstructionType = isStraight ? 'straight' : 'turn';
@@ -865,7 +874,7 @@ export default function App() {
 
     // Set initial instruction
     setCurrentInstruction(t('navigationStarted'));
-    if (mode === 'visuallyImpaired') {
+    if (mode !== 'pedestrian') {
       speakAccessibilityInfo(t('navigationStarted'));
     }
 
@@ -902,7 +911,7 @@ export default function App() {
   const provideNavigationInstructions = (currentLocation: Coordinate) => {
     if (!routeData || navigationSteps.length === 0 || !endPoint) {
       setCurrentInstruction(t('noDirectionsAvailable'));
-      if (mode === 'visuallyImpaired') {
+      if (mode !== 'pedestrian') {
         speakAccessibilityInfo(t('noDirectionsAvailable'));
       }
       return;
@@ -933,7 +942,7 @@ export default function App() {
         closeDrawer();
       }, 2000); // 2 second delay
 
-      if (mode === 'visuallyImpaired') {
+      if (mode !== 'pedestrian') {
         speakAccessibilityInfo(t('youHaveArrived'));
       }
 
@@ -964,9 +973,15 @@ export default function App() {
           pathCoordinates[nearestPointIndex],
           nextPoint
         );
+        const obstacles = getObstaclesForSegment(pathCoordinates[nearestPointIndex], nextPoint);
 
-        const instruction = getDirectionInstruction(bearing, distanceToNext);
+        const instruction = getDirectionInstruction(bearing, distanceToNext, obstacles);
         setCurrentInstruction(instruction);
+        
+        // Announce the instruction for accessibility modes
+        if (mode !== 'pedestrian') {
+          speakAccessibilityInfo(instruction);
+        }
 
         // Also look ahead to the next turn after this one
         if (nearestPointIndex < pathCoordinates.length - 2) {
@@ -974,7 +989,11 @@ export default function App() {
             pathCoordinates[nearestPointIndex + 1],
             pathCoordinates[nearestPointIndex + 2]
           );
-          setNextInstruction(getDirectionInstruction(nextBearing, 0)); // 0 distance for next instruction
+          const nextObstacles = getObstaclesForSegment(
+            pathCoordinates[nearestPointIndex + 1], 
+            pathCoordinates[nearestPointIndex + 2]
+          );
+          setNextInstruction(getDirectionInstruction(nextBearing, 0, nextObstacles)); // 0 distance for next instruction
         } else {
           setNextInstruction(t('destinationApproaching'));
         }
@@ -989,8 +1008,8 @@ export default function App() {
               : null
           );
 
-          // For visually impaired mode
-          if (mode === 'visuallyImpaired') {
+          // For accessibility modes
+          if (mode !== 'pedestrian') {
             speakAccessibilityInfo(navigationSteps[nearestPointIndex].instruction);
           }
         }
@@ -1003,7 +1022,39 @@ export default function App() {
     }
   };
 
-  const getDirectionInstruction = (bearing: number, distance: number): string => {
+  // Function to get obstacles for a path segment
+  const getObstaclesForSegment = (startCoord: Coordinate, endCoord: Coordinate): string[] => {
+    if (!routeData) return [];
+    
+    // Get the current obstacles based on path type
+    const obstacles = showAlternativePath
+      ? routeData?.alternative_path && routeData.alternative_path.length > 0
+        ? routeData.obstacles
+        : routeData?.second_alternative_path && routeData.second_alternative_path.length > 0
+          ? routeData.obstacles_model3
+          : {}
+      : {};
+
+    // Find nodes that match the coordinates
+    const startNode = currentNodeData.find(node => 
+      node && Math.abs(node.coords[0] - startCoord.latitude) < 0.0001 && 
+      Math.abs(node.coords[1] - startCoord.longitude) < 0.0001
+    );
+    const endNode = currentNodeData.find(node => 
+      node && Math.abs(node.coords[0] - endCoord.latitude) < 0.0001 && 
+      Math.abs(node.coords[1] - endCoord.longitude) < 0.0001
+    );
+
+    if (startNode && endNode) {
+      const edgeKey = `${startNode.id}-${endNode.id}`;
+      const reverseEdgeKey = `${endNode.id}-${startNode.id}`;
+      return obstacles[edgeKey] || obstacles[reverseEdgeKey] || [];
+    }
+
+    return [];
+  };
+
+  const getDirectionInstruction = (bearing: number, distance: number, obstacles?: string[]): string => {
     let direction = '';
     if (bearing >= 225 || bearing < 135) {
       direction = distance > 30 ? t('continueStraight') : t('goStraight');
@@ -1015,20 +1066,22 @@ export default function App() {
       direction = t('turnLeft');
     }
 
+    let instruction = direction;
+
     // Add distance information if relevant
     if (distance > 0) {
-      // if (distance < 10) {
-      //   return `${direction} ${t('immediately')}`;
-      // } else if (distance < 30) {
-      //   return `${direction} ${t('soon')}`;
-      // } else {
       const isStraight = direction === t('continueStraight') || direction === t('goStraight');
       const preposition = isStraight ? t('for') : t('in');
-      return `${direction} ${preposition} ${Math.round(distance)} ${t('meters')}`;
-      // }
+      instruction = `${direction} ${preposition} ${Math.round(distance)} ${t('meters')}`;
     }
 
-    return direction;
+    // Add obstacle information if available
+    if (obstacles && obstacles.length > 0) {
+      const obstacleList = obstacles.map(obstacle => t(obstacle)).join(', ');
+      instruction += `. ${t('beAwareOf')}: ${obstacleList}`;
+    }
+
+    return instruction;
   };
 
   const calculateDistance = (coord1: Coordinate, coord2: Coordinate): number => {
@@ -1077,7 +1130,7 @@ export default function App() {
         t('feedbackRequiredFields'),
       );
 
-      if (mode === 'visuallyImpaired') {
+      if (mode !== 'pedestrian') {
         speakAccessibilityInfo(t('feedbackRequiredFields'));
       }
       return;
@@ -1094,7 +1147,7 @@ export default function App() {
       setIsFeedbackModalVisible(false);
       resetFeedbackForm();
 
-      if (mode === 'visuallyImpaired') {
+      if (mode !== 'pedestrian') {
         speakAccessibilityInfo(t('feedbackSubmitted'));
         handleButtonPress();
       }
@@ -1288,7 +1341,7 @@ export default function App() {
                   coordinate={{ latitude: coord.latitude, longitude: coord.longitude }}
                   onPress={() => {
                     setSelectedObstacle(reasons);
-                    if (mode === 'visuallyImpaired') {
+                    if (mode !== 'pedestrian') {
                       speakAccessibilityInfo(t('obstaclesFound', { count: reasons.length }));
                       reasons.forEach((reason, i) => {
                         setTimeout(() => speakAccessibilityInfo(t(reason)), (i + 1) * 1500);
@@ -1329,7 +1382,7 @@ export default function App() {
                   style={styles.searchInputContainer}
                   onPress={() => {
                     setActiveAutocomplete('start');
-                    if (mode === 'visuallyImpaired') {
+                    if (mode !== 'pedestrian') {
                       speakAccessibilityInfo(t('searchStartPoint'));
                     }
                   }}
@@ -1349,7 +1402,7 @@ export default function App() {
                   accessibilityLabel={t('routeOptions')}
                   accessibilityHint={t('doubleTapActivate')}
                   onPress={() => {
-                    if (mode === 'visuallyImpaired') {
+                    if (mode !== 'pedestrian') {
                       speakAccessibilityInfo(t('routeOptions'), t('doubleTapActivate'));
                       handleButtonPress();
                     }
@@ -1363,7 +1416,7 @@ export default function App() {
                   style={styles.searchInputContainer}
                   onPress={() => {
                     setActiveAutocomplete('end');
-                    if (mode === 'visuallyImpaired') {
+                    if (mode !== 'pedestrian') {
                       speakAccessibilityInfo(t('searchEndPoint'));
                     }
                   }}
@@ -1384,7 +1437,7 @@ export default function App() {
                   accessibilityHint={t('doubleTapActivate')}
                   onPress={() => {
                     reverseStartAndEnd();
-                    if (mode === 'visuallyImpaired') {
+                    if (mode !== 'pedestrian') {
                       speakAccessibilityInfo(t('revertPoints'), t('doubleTapActivate'));
                       handleButtonPress();
                     }
@@ -1402,7 +1455,7 @@ export default function App() {
                 onValueChange={(itemValue) => {
                   setSelectedStartNode(itemValue);
                   if (routeData) updateRouteDirections();
-                  if (mode === 'visuallyImpaired' && itemValue) {
+                  if (mode !== 'pedestrian' && itemValue) {
                     const nodeName = getNodeName(itemValue, language);
                     speakAccessibilityInfo(`${t('startPoint')}: ${nodeName}`);
                   }
@@ -1423,7 +1476,7 @@ export default function App() {
                 onValueChange={(itemValue) => {
                   setSelectedEndNode(itemValue);
                   if (routeData) updateRouteDirections();
-                  if (mode === 'visuallyImpaired' && itemValue) {
+                  if (mode !== 'pedestrian' && itemValue) {
                     const nodeName = getNodeName(itemValue, language);
                     speakAccessibilityInfo(`${t('endPoint')}: ${nodeName}`);
                   }
@@ -1490,7 +1543,7 @@ export default function App() {
               style={styles.modalCloseButton}
               onPress={() => {
                 setSelectedObstacle(null);
-                if (mode === 'visuallyImpaired') {
+                if (mode !== 'pedestrian') {
                   speakAccessibilityInfo(t('close'));
                   handleButtonPress();
                 }
@@ -1644,7 +1697,7 @@ export default function App() {
         accessibilityLabel={t('changeMode')}
         onPress={() => {
           toggleFilters();
-          if (mode === 'visuallyImpaired') {
+          if (mode !== 'pedestrian') {
             speakAccessibilityInfo(t('changeMode'));
             handleButtonPress();
           }
@@ -1669,7 +1722,7 @@ export default function App() {
               accessibilityLabel={t('pedestrianMode')}
               onPress={() => {
                 handleFilterSelection('pedestrian');
-                if (mode === 'visuallyImpaired') {
+                if (mode !== 'pedestrian') {
                   speakAccessibilityInfo(t('pedestrianMode'));
                   handleButtonPress();
                 }
@@ -1681,7 +1734,7 @@ export default function App() {
               accessibilityLabel={t('mobilityMode')}
               onPress={() => {
                 handleFilterSelection('mobilityImpaired');
-                if (mode === 'visuallyImpaired') {
+                if (mode !== 'pedestrian') {
                   speakAccessibilityInfo(t('mobilityMode'));
                   handleButtonPress();
                 }
@@ -1693,8 +1746,10 @@ export default function App() {
               accessibilityLabel={t('visualMode')}
               onPress={() => {
                 handleFilterSelection('visuallyImpaired');
-                speakAccessibilityInfo(t('visualMode'));
-                handleButtonPress();
+                if (mode !== 'pedestrian') {
+                  speakAccessibilityInfo(t('visualMode'));
+                  handleButtonPress();
+                }
               }}
             >
               <Icon name="blind" size={24} color="#000" />
@@ -1709,7 +1764,7 @@ export default function App() {
         accessibilityLabel={t('centerLocation')}
         onPress={() => {
           centerMapToCurrentLocation();
-          if (mode === 'visuallyImpaired') {
+          if (mode !== 'pedestrian') {
             speakAccessibilityInfo(t('centerLocation'));
             handleButtonPress();
           }
@@ -1724,7 +1779,7 @@ export default function App() {
         accessibilityLabel={t('turnToNorth')}
         onPress={() => {
           resetMapRotation();
-          if (mode === 'visuallyImpaired') {
+          if (mode !== 'pedestrian') {
             speakAccessibilityInfo(t('turnToNorth'));
             handleButtonPress();
           }
@@ -1741,7 +1796,7 @@ export default function App() {
             accessibilityLabel={t('changeLanguage')}
             onPress={() => {
               setIsLanguageMenuOpen(true);
-              if (mode === 'visuallyImpaired') {
+              if (mode !== 'pedestrian') {
                 speakAccessibilityInfo(t('changeLanguage'));
                 handleButtonPress();
               }
@@ -1760,7 +1815,7 @@ export default function App() {
               accessibilityLabel={t('greekEnabled')}
               onPress={() => {
                 changeLanguage('el');
-                if (mode === 'visuallyImpaired') {
+                if (mode !== 'pedestrian') {
                   speakAccessibilityInfo(t('greekEnabled'));
                   handleButtonPress();
                 }
@@ -1772,7 +1827,7 @@ export default function App() {
               accessibilityLabel={t('englishEnabled')}
               onPress={() => {
                 changeLanguage('en');
-                if (mode === 'visuallyImpaired') {
+                if (mode !== 'pedestrian') {
                   speakAccessibilityInfo(t('englishEnabled'));
                   handleButtonPress();
                 }
@@ -1784,7 +1839,7 @@ export default function App() {
               accessibilityLabel={t('germanEnabled')}
               onPress={() => {
                 changeLanguage('de');
-                if (mode === 'visuallyImpaired') {
+                if (mode !== 'pedestrian') {
                   speakAccessibilityInfo(t('germanEnabled'));
                   handleButtonPress();
                 }
@@ -1802,7 +1857,7 @@ export default function App() {
         accessibilityLabel={t('giveFeedback')}
         onPress={() => {
           setIsFeedbackModalVisible(true);
-          if (mode === 'visuallyImpaired') {
+          if (mode !== 'pedestrian') {
             speakAccessibilityInfo(t('giveFeedback'));
             handleButtonPress();
           }
@@ -1817,7 +1872,7 @@ export default function App() {
         accessibilityLabel={t('changeStudyArea')}
         onPress={() => {
           setShowLocationPicker(true);
-          if (mode === 'visuallyImpaired') {
+          if (mode !== 'pedestrian') {
             speakAccessibilityInfo(t('changeStudyArea'));
             handleButtonPress();
           }
@@ -1845,7 +1900,7 @@ export default function App() {
               style={styles.closeButton}
               onPress={() => {
                 closeDrawer();
-                if (mode === 'visuallyImpaired') {
+                if (mode !== 'pedestrian') {
                   speakAccessibilityInfo(t('cancelRoute'));
                   handleButtonPress();
                 }
@@ -1973,7 +2028,7 @@ export default function App() {
                           onPress={() => {
                             // setShowAlternativePath(true);
                             toggleAlternativePath();
-                            if (mode === 'visuallyImpaired') {
+                            if (mode !== 'pedestrian') {
                               speakAccessibilityInfo(t('showAlternativeRouteButton'));
                               handleButtonPress();
                             }
@@ -1991,7 +2046,7 @@ export default function App() {
                         <TouchableOpacity style={styles.secondAltPathButton}
                           onPress={() => {
                             setShowAlternativePath(true);
-                            if (mode === 'visuallyImpaired') {
+                            if (mode !== 'pedestrian') {
                               speakAccessibilityInfo(t('showInaccessibleRouteButton'));
                               handleButtonPress();
                             }

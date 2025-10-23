@@ -150,5 +150,18 @@ export const allNodesHamburg: Node[] = [
     { id: 147, name: "Wohldorfer Str. & Hamburger Str.", coords: [53.577285, 10.038598] },
     { id: 148, name: "Berthastrasse & Hamburger Str.", coords: [53.578135, 10.038773] },
     { id: 149, name: "Πεζόδρομος από Hamburger Str.", coords: [53.578457, 10.039391] },
-    { id: 150, name: "Πεζόδρομος από Vogelweide", coords: [53.578018, 10.041629] }
+    { id: 150, name: "Πεζόδρομος από Vogelweide", coords: [53.578018, 10.041629] },
+    { id: 151, name: " ", coords: [53.5791644, 10.0432692] },
+    { id: 152, name: " ", coords: [53.5781324, 10.0493869] },
+    { id: 153, name: " ", coords: [53.5780266, 10.0492811] },
+    { id: 154, name: " ", coords: [53.5779927, 10.0459951] },
+    { id: 155, name: " ", coords: [53.5795608325, 10.04024779424] },
+    { id: 156, name: " ", coords: [53.576024, 10.056091] },
+    { id: 157, name: " ", coords: [53.575906, 10.055970] },
+    { id: 158, name: " ", coords: [53.576011, 10.056707] },
+    { id: 159, name: " ", coords: [53.575910, 10.056592] },
+    { id: 160, name: " ", coords: [53.577263, 10.056020] },
+    { id: 161, name: " ", coords: [53.577264, 10.056218] },
+    { id: 162, name: " ", coords: [53.5784574, 10.0579491] },
+    { id: 163, name: " ", coords: [53.5767193, 10.05848] }
 ] as Node[];
