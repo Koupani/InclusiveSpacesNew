@@ -70,8 +70,8 @@ interface RouteResponse {
   total_time_alternative: number | null; // Total time of the alternative path
   total_time_second_alternative: number | null; // Total time of the second alternative path
   smooth_path?: Coordinate[]; // Optional smoothed path as a list of coordinates
-  obstacles: { [key: string]: string[] }; // Obstacles for the alternative path
-  obstacles_model3: { [key: string]: string[] }; // Obstacles for the second alternative path
+  obstacles: { [key: string]: Array<{ type: string; value: number | string; threshold: number | string }> }; // Obstacles for the alternative path
+  obstacles_model3: { [key: string]: Array<{ type: string; value: number | string; threshold: number | string }> }; // Obstacles for the second alternative path
 }
 
 const ttsLanguageMap = {
@@ -113,7 +113,7 @@ export default function App() {
   const { t, i18n } = useTranslation();
   const [language, setLanguage] = useState('en'); // Default language is English
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
-  const [selectedObstacle, setSelectedObstacle] = useState<string[] | null>(null);
+  const [selectedObstacle, setSelectedObstacle] = useState<Array<{ type: string; value: number | string; threshold: number | string }> | null>(null);
   const [isDrawerVisible, setIsDrawerVisible] = useState<boolean>(false);
   const drawerHeight = useRef(new Animated.Value(0)).current; // Initial height of the drawer
   // Add these to your existing state declarations
@@ -853,7 +853,7 @@ export default function App() {
     let lastBearing: number | null = null;
 
     // Generate instruction for each segment
-    let combinedObstacles: string[] = [];
+    let combinedObstacles: Array<{ type: string; value: number | string; threshold: number | string }> = [];
     
     for (let i = 0; i < pathCoordinates.length - 1; i++) {
       const start = pathCoordinates[i];
@@ -868,7 +868,14 @@ export default function App() {
       if (isStraight && lastInstructionType === 'straight') {
         // Combine with previous straight instruction
         combinedDistance += distance;
-        combinedObstacles = [...new Set([...combinedObstacles, ...obstacles])]; // Merge unique obstacles
+        // Merge obstacles by type (avoid duplicates)
+        const mergedObstacles = [...combinedObstacles];
+        obstacles.forEach(obs => {
+          if (!mergedObstacles.find(existing => existing.type === obs.type)) {
+            mergedObstacles.push(obs);
+          }
+        });
+        combinedObstacles = mergedObstacles;
         // Update the last step with combined distance and obstacles
         steps[steps.length - 1] = {
           instruction: getDirectionInstruction(lastBearing!, combinedDistance, combinedObstacles),
@@ -1052,7 +1059,7 @@ export default function App() {
   };
 
   // Function to get obstacles for a path segment
-  const getObstaclesForSegment = (startCoord: Coordinate, endCoord: Coordinate): string[] => {
+  const getObstaclesForSegment = (startCoord: Coordinate, endCoord: Coordinate): Array<{ type: string; value: number | string; threshold: number | string }> => {
     if (!routeData) return [];
     
     // Get the current obstacles based on path type
@@ -1083,7 +1090,7 @@ export default function App() {
     return [];
   };
 
-  const getDirectionInstruction = (bearing: number, distance: number, obstacles?: string[]): string => {
+  const getDirectionInstruction = (bearing: number, distance: number, obstacles?: Array<{ type: string; value: number | string; threshold: number | string }>): string => {
     let direction = '';
     if (bearing >= 225 || bearing < 135) {
       direction = distance > 30 ? t('continueStraight') : t('goStraight');
@@ -1106,7 +1113,7 @@ export default function App() {
 
     // Add obstacle information if available
     if (obstacles && obstacles.length > 0) {
-      const obstacleList = obstacles.map(obstacle => t(obstacle)).join(', ');
+      const obstacleList = obstacles.map(obstacle => t(obstacle.type)).join(', ');
       instruction += `. ${t('beAwareOf')}: ${obstacleList}`;
     }
 
@@ -1374,7 +1381,7 @@ export default function App() {
                     if (mode !== 'pedestrian') {
                       speakAccessibilityInfo(t('obstaclesFound', { count: reasons.length }));
                       reasons.forEach((reason, i) => {
-                        setTimeout(() => speakAccessibilityInfo(t(reason)), (i + 1) * 1500);
+                        setTimeout(() => speakAccessibilityInfo(t(reason.type)), (i + 1) * 1500);
                       });
                     }
                   }}
@@ -1564,11 +1571,19 @@ export default function App() {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>{t('obstacles')}</Text>
-            {selectedObstacle?.map((reason, index) => (
-              <Text key={index} style={styles.modalText}>
-                {t(reason)}
-              </Text>
-            ))}
+            {selectedObstacle?.map((obstacle, index) => {
+              const isNumeric = typeof obstacle.value === 'number';
+              const operator = ['narrowPavement', 'NoPavement', 'NarrowKerbWidth'].includes(obstacle.type) ? '<' : '>';
+              
+              return (
+                <Text key={index} style={styles.modalText}>
+                  {isNumeric 
+                    ? `${t(obstacle.type)}: ${(obstacle.value as number).toFixed(2)} ${operator} ${(obstacle.threshold as number).toFixed(2)}`
+                    : t(obstacle.type)
+                  }
+                </Text>
+              );
+            })}
             <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={() => {
