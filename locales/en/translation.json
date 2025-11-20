@@ -85,5 +85,9 @@
   "navigationStopped": "Navigation stopped",
   "tapToSearch": "Tap to search for location",
   "obstaclesFound": "Found obstacles",
-  "beAwareOf": "Be aware of"
+  "beAwareOf": "Be aware of",
+  "switchToSatellite": "Switch to satellite view",
+  "switchToStandard": "Switch to standard view", 
+  "satelliteViewEnabled": "Satellite view enabled",
+  "standardViewEnabled": "Standard view enabled"
 }

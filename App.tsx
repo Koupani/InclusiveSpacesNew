@@ -143,6 +143,7 @@ export default function App() {
   const [ttsReady, setTtsReady] = useState(false);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [showTalkbackModal, setShowTalkbackModal] = useState(false);
+  const [mapType, setMapType] = useState<'standard' | 'satellite'>('standard');
 
   useEffect(() => {
     if (showLocationPicker) {
@@ -563,6 +564,19 @@ export default function App() {
           console.error('Failed to set TTS language:', error);
         }
       }
+
+      // Update navigation instructions if currently navigating
+      if (isNavigating && routeData && userLocation) {
+        // Regenerate instructions with new language
+        provideNavigationInstructions(userLocation);
+        
+        // Announce language change for accessibility modes
+        if (mode !== 'pedestrian') {
+          setTimeout(() => {
+            speakAccessibilityInfo(t('languageChanged'));
+          }, 500);
+        }
+      }
     } catch (err) {
       console.error('Error changing language:', err);
     }
@@ -608,6 +622,21 @@ export default function App() {
         updateRouteDirections(); // Recalculate for new path
       }
       return newValue;
+    });
+  };
+
+  const toggleMapType = () => {
+    setMapType(prev => {
+      const newType = prev === 'standard' ? 'satellite' : 'standard';
+      
+      // Announce map type change for accessibility modes
+      if (mode !== 'pedestrian') {
+        const announcement = newType === 'satellite' ? t('satelliteViewEnabled') : t('standardViewEnabled');
+        speakAccessibilityInfo(announcement);
+        handleButtonPress();
+      }
+      
+      return newType;
     });
   };
 
@@ -1229,6 +1258,7 @@ export default function App() {
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
+        mapType={mapType}
         // showsUserLocation={true}
         followsUserLocation={true}
         initialRegion={location}
@@ -1786,6 +1816,21 @@ export default function App() {
         }}
       >
         <Icons name="navigation" size={24} color="#000" />
+      </TouchableOpacity>
+
+      {/* Map Type Toggle */}
+      <TouchableOpacity
+        style={styles.mapTypeButton}
+        accessibilityLabel={mapType === 'standard' ? t('switchToSatellite') : t('switchToStandard')}
+        onPress={() => {
+          toggleMapType();
+        }}
+      >
+        <Icons 
+          name={mapType === 'standard' ? "public" : "public-off"} 
+          size={24} 
+          color="#000" 
+        />
       </TouchableOpacity>
 
       {/* Language Menu */}

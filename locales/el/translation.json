@@ -85,5 +85,9 @@
   "navigationStopped": "Η πλοήγηση σταμάτησε",
   "tapToSearch": "Πατήστε για αναζήτηση τοποθεσίας",
   "obstaclesFound": "Βρέθηκαν εμπόδια",
-  "beAwareOf": "Προσοχή"
+  "beAwareOf": "Προσοχή",
+  "switchToSatellite": "Αλλαγή σε δορυφορική προβολή",
+  "switchToStandard": "Αλλαγή σε τυπική προβολή", 
+  "satelliteViewEnabled": "Ενεργοποιήθηκε η δορυφορική προβολή",
+  "standardViewEnabled": "Ενεργοποιήθηκε η τυπική προβολή"
 }

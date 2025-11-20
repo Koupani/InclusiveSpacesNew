@@ -82,7 +82,7 @@ export const nodeNameMappingsPenteli: { [key: number]: { en: string; de: string 
     485: { en: "Dimokratias & Liodimou", de: "Dimokratias & Liodimou" },
     489: { en: "33 Pigis Ave (Pedestrian Traffic Light)", de: "Pigis Allee 33 (Fußgängerampel)" },
     492: { en: "Sokratous & Kyprou", de: "Sokratous & Kyprou" },
-    493: { en: "14 P. Tsaldari (Pedestrian Crossing)", de: "P. Tsaldari 14 (Fußgängerüberweg)" }, 
+    495: { en: "14 P. Tsaldari (Pedestrian Crossing)", de: "P. Tsaldari 14 (Fußgängerüberweg)" }, 
     498: { en: "P. Tsaldari & Fidíou", de: "P. Tsaldari & Fidíou" },
     503: { en: "21 P. Tsaldari (Pedestrian Traffic Light)", de: "P. Tsaldari 21 (Fußgängerampel)" },
     506: { en: "Athanasiou Diakou & Al. Panagouli (Pedestrian Street)", de: "Athanasiou Diakou & Al. Panagouli (Fußgängerzone)" },

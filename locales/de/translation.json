@@ -86,5 +86,9 @@
   "navigationStopped": "Navigation gestoppt",
   "tapToSearch": "Zum Suchen eines Standorts tippen",
   "obstaclesFound": "Hindernisse gefunden",
-  "beAwareOf": "Achtung"
+  "beAwareOf": "Achtung",
+  "switchToSatellite": "Zu Satellitenansicht wechseln",
+  "switchToStandard": "Zu Standardansicht wechseln", 
+  "satelliteViewEnabled": "Satellitenansicht aktiviert",
+  "standardViewEnabled": "Standardansicht aktiviert"
 }

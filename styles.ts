@@ -201,6 +201,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 50,
   },
+  mapTypeButton: {
+    position: 'absolute',
+    top: 585,
+    right: 10,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 10,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    height: 50,
+    width: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 50,
+  },
   languageMenu: {
     flexDirection: 'row',
     justifyContent: 'center', // Center the flags
@@ -311,13 +329,13 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    elevation: 5,
+    elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     maxHeight: MAX_DRAWER_HEIGHT, // Larger maximum height
-    zIndex: 1000
+    zIndex: 2000
   },
   drawerContent: {
     flex: 1,
