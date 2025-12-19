@@ -789,8 +789,14 @@ export default function App() {
       const steps = generateAllNavigationSteps(routeData, showAlternativePath);
       setNavigationSteps(steps);
       setCurrentStepIndex(0); // Reset to first step
+      
+      // Update current and next instructions if navigating
+      if (isNavigating && steps.length > 0) {
+        setCurrentInstruction(steps[0]?.instruction || '');
+        setNextInstruction(steps[1]?.instruction || null);
+      }
     }
-  }, [routeData, showAlternativePath]);
+  }, [routeData, showAlternativePath, language]);
 
   const updateRouteDirections = () => {
     if (!routeData) {
@@ -1225,6 +1231,13 @@ export default function App() {
                     setShowLocationPicker(false);
                     // Update node data based on selected area
                     setCurrentNodeData(area.id === 'hamburg' ? allNodesHamburg : allNodesPenteli);
+                    
+                    // Set language based on study area
+                    const newLanguage = area.id === 'penteli' ? 'el' : area.id === 'hamburg' ? 'de' : 'en';
+                    setLanguage(newLanguage);
+                    i18n.changeLanguage(newLanguage);
+                    Tts.setDefaultLanguage(ttsLanguageMap[newLanguage]);
+                    
                     // Update the map location immediately
                     setLocation({
                       latitude: area.center.latitude,
@@ -1575,10 +1588,16 @@ export default function App() {
               const isNumeric = typeof obstacle.value === 'number';
               const operator = ['narrowPavement', 'NoPavement', 'NarrowKerbWidth'].includes(obstacle.type) ? '<' : '>';
               
+              // Determine the unit based on obstacle type and language
+              const isWidthType = ['narrowPavement', 'NoPavement', 'NarrowKerbWidth'].includes(obstacle.type);
+              const isSlopeType = ['SteepHorizontalSlope', 'HighKerbSlope'].includes(obstacle.type);
+              const cmUnit = i18n.language === 'el' ? ' εκ.' : ' cm';
+              const unit = isWidthType ? cmUnit : isSlopeType ? ' %' : '';
+              
               return (
                 <Text key={index} style={styles.modalText}>
                   {isNumeric 
-                    ? `${t(obstacle.type)}: ${(obstacle.value as number).toFixed(2)} ${operator} ${(obstacle.threshold as number).toFixed(2)}`
+                    ? `${t(obstacle.type)}: ${Math.round(obstacle.value as number)}${unit} (${operator} ${Math.round(obstacle.threshold as number)}${unit})`
                     : t(obstacle.type)
                   }
                 </Text>
