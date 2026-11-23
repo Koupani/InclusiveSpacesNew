@@ -32,6 +32,11 @@ npm run android
 yarn android
 ```
 
+The Android Maps SDK key is supplied through the `GOOGLE_MAPS_API_KEY` Gradle
+project property. Keep it outside the repository, for example in
+`~/.gradle/gradle.properties` or in your CI secret configuration. Without this
+property, the app still builds, but Google Maps features won't load.
+
 ### For iOS
 
 ```bash
